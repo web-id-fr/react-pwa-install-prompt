@@ -1,5 +1,7 @@
 # React PWA install prompt
 
+ATTENTION ce package n'est pas encore fonctionnel ! 
+
 Ce package affiche un component custom pour l’installation d’une PWA sur un navigateur compatible.
 
 
