@@ -1,10 +1,11 @@
 import usePwaInstallPrompt, { type PwaInstallPromptProps } from '../hooks/usePwaInstallPrompt'
 
 const PwaInstallPrompt = (props: PwaInstallPromptProps) => {
-    const { isCompatible } = usePwaInstallPrompt(props)
+    const state = usePwaInstallPrompt(props)
+    console.log(state)
 
-    if (!isCompatible) {
-        return null
+    if (!state.isCompatible) {
+        return false
     }
 
     return <div></div>

@@ -1,11 +1,22 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useState } from 'react'
 
 export type PwaInstallPromptProps = {
     debug?: boolean
 }
 
 const usePwaInstallPrompt = (props: PwaInstallPromptProps) => {
-    const platform = useMemo<Record<string, boolean>>(() => {
+    console.log('usePwaInstallPrompt', props)
+    const [platform, setPlatform] = useState<Record<string, boolean>>({})
+    const handleBeforeInstallPrompt = (event: Event) => {
+        console.log('handleBeforeInstallPrompt')
+        event.preventDefault()
+    }
+
+    const handleAppInstalled = () => {
+        console.log('handleAppInstalled')
+    }
+
+    useEffect(() => {
         const platform: Record<string, boolean> = {}
         platform.isIDevice =
             /iPad|iPhone|iPod/i.test(navigator.userAgent) ||
@@ -27,31 +38,18 @@ const usePwaInstallPrompt = (props: PwaInstallPromptProps) => {
         platform.isInWebAppiOS = 'standalone' in window.navigator && window.navigator.standalone === true
         platform.isInWebAppChrome = window.matchMedia('(display-mode: standalone)').matches
         platform.isStandalone = platform.isInWebAppiOS || platform.isInWebAppChrome
-        platform.isCompatible =
+        platform.isBworserCompatible =
             platform.isChromium || platform.isIDevice || platform.isSamsung || platform.isFireFox || platform.isOpera
 
-        return platform
-    }, [])
+        const manifest = document.querySelector('[rel="manifest"]')
+        platform.isManifestDefined = Boolean(manifest)
+        platform.isSWReady = false
+        setPlatform(platform)
 
-    console.log(props, platform)
-
-    const handleBeforeInstallPrompt = (event: Event) => {
-        console.log('handleBeforeInstallPrompt')
-        event.preventDefault()
-    }
-
-    const handleAppInstalled = () => {
-        console.log('handleAppInstalled')
-    }
-
-    useEffect(() => {
         if ('serviceWorker' in navigator) {
-            const manifest = document.querySelector('[rel="manifest"]')
-            if (!manifest) {
-                platform.isCompatible = false
-            }
-            void navigator.serviceWorker.getRegistration().then((sw) => {
-                console.log(sw)
+            void navigator.serviceWorker.ready.then((sw) => {
+                console.log('ready', sw)
+                setPlatform((platform) => ({ ...platform, isSWReady: true }))
             })
         }
 
@@ -72,7 +70,10 @@ const usePwaInstallPrompt = (props: PwaInstallPromptProps) => {
         }
     }, [])
 
-    return { ...platform }
+    return {
+        isCompatible: (platform.isBworserCompatible && platform.isManifestDefined && platform.isSWReady) ?? false,
+        ...platform,
+    }
 }
 
 export default usePwaInstallPrompt
