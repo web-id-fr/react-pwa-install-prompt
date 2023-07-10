@@ -1,19 +1,89 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import useLocalStorage from './useLocalStorage'
 
 export type PwaInstallPromptProps = {
     debug?: boolean
+    onInstall?: () => void
+    onAdd?: () => void
+    onCancel?: () => void
+}
+
+type Session = {
+    lastDisplayTime: number // last time we displayed the message
+    displayCount: number // number of times the message has been shown
+    optedOut: boolean // has the user opted out
+    added: boolean // has been actually added to the home screen
 }
 
 const usePwaInstallPrompt = (props: PwaInstallPromptProps) => {
     console.log('usePwaInstallPrompt', props)
     const [platform, setPlatform] = useState<Record<string, boolean>>({})
+    const initialSession: Session = {
+        lastDisplayTime: 0,
+        displayCount: 0,
+        optedOut: false,
+        added: false,
+    }
+    const [session, setSession] = useLocalStorage<Session>('react-pwa-install-prompt-session', initialSession)
+    const [open, setOpen] = useState<boolean>(false)
+
+    useEffect(() => {
+        if (!open && !session.added && !session.optedOut) {
+            setOpen(true)
+        }
+    }, [open, session.added, session.optedOut])
+
+    const triggerNativePrompt = (): void => {
+        if (!beforeInstallPromptEvent.current) {
+            return
+        }
+
+        const event = beforeInstallPromptEvent.current as BeforeInstallPromptEvent
+        void event
+            .prompt()
+            .then(() => {
+                // Wait for the user to respond to the prompt
+                return event?.userChoice
+            })
+            .then((choiceResult) => {
+                const newSession = { ...(session as object) } as Session
+                newSession.added = choiceResult?.outcome === 'accepted'
+
+                if (newSession.added) {
+                    console.log('user accepted the A2HS prompt')
+                    props.onAdd?.()
+                } else {
+                    props.onCancel?.()
+                    newSession.optedOut = true
+                    console.log('user dismissed the A2HS prompt')
+                }
+                setSession(newSession)
+            })
+    }
+
+    const beforeInstallPromptEvent = useRef<Event>()
     const handleBeforeInstallPrompt = (event: Event) => {
         console.log('handleBeforeInstallPrompt')
         event.preventDefault()
+        beforeInstallPromptEvent.current = event
     }
 
     const handleAppInstalled = () => {
         console.log('handleAppInstalled')
+    }
+
+    const handleInstall = () => {
+        props.onInstall?.()
+        if (beforeInstallPromptEvent.current) {
+            setOpen(false)
+            triggerNativePrompt()
+        }
+    }
+
+    const handleClose = () => {
+        props.onCancel?.()
+        setSession((session: Session) => ({ ...(session as object), optedOut: true }) as Session)
+        setOpen(false)
     }
 
     useEffect(() => {
@@ -71,8 +141,12 @@ const usePwaInstallPrompt = (props: PwaInstallPromptProps) => {
     }, [])
 
     return {
+        open,
+        handleInstall,
+        handleClose,
         isCompatible: (platform.isBworserCompatible && platform.isManifestDefined && platform.isSWReady) ?? false,
-        ...platform,
+        platform,
+        session,
     }
 }
 

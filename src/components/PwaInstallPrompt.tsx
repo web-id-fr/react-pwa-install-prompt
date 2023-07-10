@@ -8,7 +8,13 @@ const PwaInstallPrompt = (props: PwaInstallPromptProps) => {
         return false
     }
 
-    return <div></div>
+    return (
+        <div style={{ opacity: !state.open ? 0.1 : 1 }}>
+            Install PWA
+            <button onClick={state.handleClose}>Close</button>
+            <button onClick={state.handleInstall}>Install</button>
+        </div>
+    )
 }
 
 export default PwaInstallPrompt
