@@ -17,6 +17,26 @@ export default defineConfig(({ mode }) => {
                 devOptions: {
                     enabled: true,
                 },
+                manifest: {
+                    name: 'A2HS',
+                    short_name: 'A2HS',
+                    description: 'React PWA Install Prompt',
+                    theme_color: '#ffffff',
+                    background_color: '#ffffff',
+                    display: 'standalone',
+                    icons: [
+                        {
+                            src: 'android-chrome-192x192.png',
+                            sizes: '192x192',
+                            type: 'image/png',
+                        },
+                        {
+                            src: 'android-chrome-512x512.png',
+                            sizes: '512x512',
+                            type: 'image/png',
+                        },
+                    ],
+                },
             }),
         ],
         server: {

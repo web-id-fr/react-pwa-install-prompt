@@ -3,6 +3,7 @@ import useLocalStorage from './useLocalStorage'
 
 export type PwaInstallPromptProps = {
     debug?: boolean
+    displaySilence?: number
     onInstall?: () => void
     onAdd?: () => void
     onCancel?: () => void
@@ -30,6 +31,7 @@ const usePwaInstallPrompt = (props: PwaInstallPromptProps) => {
     useEffect(() => {
         if (!open && !session.added && !session.optedOut) {
             setOpen(true)
+            setSession((session: Session) => ({ ...(session as object), lastDisplayTime: Date.now() }) as Session)
         }
     }, [open, session.added, session.optedOut])
 
@@ -91,19 +93,12 @@ const usePwaInstallPrompt = (props: PwaInstallPromptProps) => {
         platform.isIDevice =
             /iPad|iPhone|iPod/i.test(navigator.userAgent) ||
             (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+        platform.isAndroid = /Android/i.test(navigator.userAgent)
         platform.isSamsung = /Samsung/i.test(navigator.userAgent)
-        platform.isFireFox = /Firefox/i.test(navigator.userAgent)
-        platform.isOpera = /Opera/i.test(navigator.userAgent)
         platform.isEdge = /Edge/i.test(navigator.userAgent)
-
         // Opera & FireFox only Trigger on Android
-        if (platform.isFireFox) {
-            platform.isFireFox = /Android/i.test(navigator.userAgent)
-        }
-        if (platform.isOpera) {
-            platform.isOpera = /Android/i.test(navigator.userAgent)
-        }
-
+        platform.isFireFox = /Firefox/i.test(navigator.userAgent) && platform.isAndroid
+        platform.isOpera = /Opera/i.test(navigator.userAgent) && platform.isAndroid
         platform.isChromium = 'onbeforeinstallprompt' in window
         platform.isInWebAppiOS = 'standalone' in window.navigator && window.navigator.standalone === true
         platform.isInWebAppChrome = window.matchMedia('(display-mode: standalone)').matches
@@ -117,8 +112,7 @@ const usePwaInstallPrompt = (props: PwaInstallPromptProps) => {
         setPlatform(platform)
 
         if ('serviceWorker' in navigator) {
-            void navigator.serviceWorker.ready.then((sw) => {
-                console.log('ready', sw)
+            void navigator.serviceWorker.ready.then(() => {
                 setPlatform((platform) => ({ ...platform, isSWReady: true }))
             })
         }
